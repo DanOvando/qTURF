@@ -13,7 +13,7 @@ FunctionHolder; % Load in functions
 
 fn=FunctionHolder(); %Allow functions to be called
 
-RunName='Aug 25 2014'; %Set name of folder to store results
+RunName='WTF'; %Set name of folder to store results
 
 mkdir('Results');
 
@@ -29,8 +29,7 @@ mkdir(RawFolder)
 
 ControlFile; %Load in controlfile
 
-save(strcat(BaseFolder,'WorkSpace.mat'),'Turf','Fish','System') %
-workspace for future reference
+save(strcat(BaseFolder,'WorkSpace.mat'),'Turf','Fish','System') %save workspace for future reference
 
 
 %% Set up Initial Conditions
@@ -580,7 +579,7 @@ for s=1:Scenes
     colormap summer
     hold off
 end
--
+
 print(gcf,'-depsc',[FigureFolder 'Relative Total Profits Experiment Results.eps'])
 close
 
