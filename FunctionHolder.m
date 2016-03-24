@@ -50,6 +50,7 @@ PopMatrix=NaN(System.NumPatches,Time);
 
 t=1   ;
 
+
 PopMatrix(:,1)=StartPop;
 
 TimeTurfProfits=NaN(Turf.NumTurfs,Time);
