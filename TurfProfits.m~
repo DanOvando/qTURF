@@ -16,7 +16,7 @@ if strcmp(Method,'Simple')
         
         Alpha2=Turf.Alpha;
         
-                 Beta=Alpha2(WhichTurfs,Col)./(2.*Effort);%Increase costs to dissipiate marginal profits
+                Beta=Alpha2(WhichTurfs,Col)./(2.*Effort);%Increase costs to dissipiate marginal profits
         
 %         Beta = (Alpha2(WhichTurfs,Col).* Turf.q(WhichTurfs).*Biomass(WhichTurfs))./(2.*Effort);%Increase costs to dissipiate marginal profits
         
@@ -27,9 +27,8 @@ if strcmp(Method,'Simple')
         
         Alpha2=Turf.Alpha.*(1-System.ITQCosts);
         
-%         Beta = 0.77 .* (Alpha2(WhichTurfs,Col).* Turf.q(WhichTurfs).*Biomass(WhichTurfs))./(2.*Effort);%Increase costs to dissipiate marginal profits
-
-        Beta= (Alpha2(:,Col)'.*Turf.q)./2; %Costs scale to catcheability
+%
+%         Beta= (Alpha2(:,Col)'.*Turf.q)./2; %Costs scale to catcheability
         
     end
     

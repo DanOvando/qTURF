@@ -49,9 +49,6 @@ TimeTurfMarginalProfits=NaN(Turf.NumTurfs,Time);
 
 StoreEffort=NaN(Turf.NumTurfs,Time);
 
-RealEffort=NaN(Turf.NumTurfs,Time);
-
-
 EQCount=0;
 
 StopTime=1e10; %Maximum time for the model to run
@@ -68,7 +65,7 @@ while t<(Time+1)
         if length(IsITQ) >1
             warning('Attempting to trade with different internal ITQs')
         end
-        
+        U
         RealizedEffort=TradeQuota(U,IsITQ,MovePopulation);
         
 %         RealizedEffort=RealizedEffort./Turf.q;
@@ -77,9 +74,6 @@ while t<(Time+1)
     end
     
     StoreEffort(:,t)=RealizedEffort.*Turf.q; %Transform effort from E to U
-    
-   RealEffort(:,t)=RealizedEffort; %Store real effort
-
     
     Quota= RealizedEffort.*Turf.q.*MovePopulation; %Determine the quota for each level of effort
     
@@ -153,8 +147,6 @@ Output.FinalProfits=TimeTurfProfits(:,end); %Store final TURF profits
 Output.FinalMarginalProfits = TimeTurfMarginalProfits(:,end); %Store final TURF profits
 
 Output.Effort=StoreEffort; %Store effort over time
-
-Output.RealEffort = RealEffort;
 
 if strcmp(MakeFigures,'Yes')
     

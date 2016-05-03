@@ -16,7 +16,7 @@ System.ITQCosts=.05; %Percent of revenus lost to ITQ implementation
 
 Fish.r=.2;
 
-Fish.K=100;
+Fish.K=[100,100];
 
 Fish.Umsy=(Fish.r/2);
 

@@ -8,7 +8,7 @@ library(tidyr)
 library(reshape2)
 library(scales)
 
-resultdir <- 'BMS Revisions 2'
+resultdir <- 'BMS Revisions 3'
 
 figurefolder <- paste('Results/',resultdir,'/Figures/',sep = '')
 
@@ -160,7 +160,7 @@ ggsave(file = paste(figurefolder,'figure whoknows.pdf'), plot = fig2who, height 
 
 fig2 <- (ggplot(total.profits, aes(scenario,relative.profits/100, fill = rights)) +
               geom_bar(stat = 'identity', width = 0.4, position = position_dodge(width = 0.7), color = 'black') +
-              scale_y_continuous(labels = percent, limits= c(0,1.2)) +
+              scale_y_continuous(labels = percent, limits= c(0,1.6)) +
               geom_hline(yintercept = 1, linetype = 'longdash') +
               qturf.theme + theme (legend.title = element_blank(), axis.title.x = element_blank()) +
               ylab('% of Optimal Profits') +

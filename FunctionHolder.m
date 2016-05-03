@@ -473,7 +473,7 @@ end
 
 for t=1:Turf.NumTurfs %loop over TURFs
     TurfPop(t)=sum(Pop(Turf.TurfLocations==t));
-    Pi(t)=Turf.Alpha(t,Col).*Turf.q(t).*TurfPop(t); %Calculate profits in turf t
+    Pi(t)=Turf.Alpha(t,Col).*Turf.q(t).*TurfPop(t); %Calculate marginal revenue
     %     Pi(t)=Turf.Alpha(t,Col).*TurfPop(t);
     Marg(t)=Pi(t)-2*Beta(t); %Calculate marginal profits
     

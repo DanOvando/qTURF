@@ -27,9 +27,7 @@ if IsITQ==0 %Calculate non-ITQ profit function
 else %Calculate ITQ profit function
     Col=2;
     
-    Alpha2=(Turf.Alpha(:,Col).*(1-System.ITQCosts))';
-
-    Beta= (Alpha2(:,Col)'.*Turf.q)./2;
+    Beta= (Turf.Alpha(:,Col)'.*Turf.q)./2;
     
     %         Biomass=Quota./(Turf.q*Effort);
     
@@ -49,7 +47,7 @@ end
 
 
 
-[Theta, arg]=fzero(@(Theta) ZeroFun(Theta,Pi,Beta,Turf,quota_pool,Fish,TurfPop, IsITQ, System),.5); %Find trading that results in equal marginal profits
+[Theta, arg]=fzero(@(Theta) ZeroFun(Theta,Pi,Beta,Turf,quota_pool,Col,Fish,TurfPop),.5); %Find trading that results in equal marginal profits
 
 
 turf_effort = ([Theta, 1 - Theta] .* quota_pool) ./ (Turf.q .* TurfPop);
@@ -95,11 +93,8 @@ elseif (Theta<0)
     Theta=0;
 end
 %Theta;
-
-turf_effort = ([Theta, 1 - Theta] .* quota_pool) ./ (Turf.q .* TurfPop);
-
-% Output=DistributeFleet([TotalEffort.*Theta,TotalEffort.*(1-Theta)],1:2);
-Output=DistributeFleet(turf_effort,1:2);
+Output=DistributeFleet([TotalEffort.*Theta,TotalEffort.*(1-Theta)],1:2);
+Output=DistributeFleet(turf_eff,1:2);
 
 
 end
