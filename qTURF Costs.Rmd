@@ -1,0 +1,68 @@
+---
+title: "qTURF Costs"
+author: "Dan Ovando"
+date: "May 11, 2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+In the paper we refer to price as *a* and cost per unit effort as *b*. We have two scenarios, i = 0 (no cooperation) and i = 1 (cooperation)
+
+We set *b* equal to
+
+$b = a/2E$ if i = 0
+
+and
+
+$b = aq/2$ if i = 1
+
+This has the nice property that costs are always higher under no cooperation. Unfortunately, it isn't really what we say it is. As we describe it, without cooperation, *b* rises until marginal profits are zero, meaning that
+
+$$(1) \pi = aqEN - bE^{2}$$
+
+and
+
+$$ (2) d\pi/dE = aqN - 2bE$$
+
+making b equal to
+
+$b = aqN/2E$ if i = 0
+
+So that's good, but the question is, what happens if *i*=1? I originally thought that we could just say that *b~i=1~* = 0.77*b~i=1~*. Unfortunately, this makes things blow up. Something about the way that effort is allocated under the ITQ cancels this out and basically marginal profits are equal no matter what under i = 1.
+
+Under the grand ITQ scenario, there is an allocation of quota such that marginal profits with respect to effort are the same in each TURF.
+
+The manager picks a fishing mortality rate *u*. That *u* produces a quota pool equal to *uN*, where *N* is the total population across both patches.
+
+That quota is then divided between the two TURFs be a parameter $\theta$, which says that TURF one gets catch (*c*) equal to
+
+$$ c_{1} = \theta{N}$$
+
+and TURF 2 gets
+
+$$ c_{2} = (1-\theta){N}$$
+
+for each TURF, that translates into an effort per TURF of
+
+$$effort_{1} = \frac{c_{1}}{q_{1}N_{1}}$$
+
+So, back to the problem with the ITQ trading. when cost parameter *b* is some constant, we simply find a $\theta$ such that marginal profits are equal in each patch per
+
+$$ 0 =  (aq_{1}N_{1} - 2b_{1}E_{1}) - (aq_{2}N_{2} - 2b_{2}E_{2})$$
+
+The problem though, is that under this new cost model, $b = {\gamma}aqN/2E$, where $\gamma$ is some constant >0 and <1. If we plug this *b* back into our marginal cost equation though,we get
+
+$$ (2) d\pi/dE = aqN - {\gamma}aqN$$
+
+As we said, for any E under this model, marginal profits are 0, meaning that even if we throw a constant in there for $\gamma$, marginal profits are now a constant, but not 0. $d\pi/dE$ is now independent of E, so there's no way to tune and $\theta$, and therefore E, in each TURF such that marginal profits in each TURF are equal. The marginal profits with respect to E each TRUF are just identical (if q and N are the same in each patch) or parallel straight lines.
+
+So, we can't simply multiply the un-cooperative *b* by some constant $\gamma$, and still have the same trading method for the ITQ that we currently use. We might be able to redesign the trading, but hard to think of a method for trading that doesn't involve some sort of marginal profits thing.
+
+An alternative method for costs under cooperation is using a target cost to revenue ratio at some fixed point, like B~msy~
+
+My hack was to define cost when i = 1 such that the cost/revenue ratio at MSY is equal to 0.75 (or whatever). This works most of the time, resulting in lower costs when cooperation is 1, and lower total costs in equilibrium, but doesn't guarantee that cooperation will be cheaper if effort is really high/equilibrium biomass very low.
+
+Ugh. 

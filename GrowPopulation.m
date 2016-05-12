@@ -1,4 +1,4 @@
-function Output=GrowPopulation(StartPop,U,Time,IsITQ,IsTrading,MakeFigures,FileName) %Central population growth function
+function Output=GrowPopulation(StartPop,U,Time,IsITQ,IsTrading,MakeFigures,FileName, theta) %Central population growth function
 %% Population model
 global Fish Turf System
 
@@ -12,6 +12,8 @@ global Fish Turf System
 %          IsITQ=0
 %          IsTrading=0
 %          FileName='wh'
+
+cr_ratio = 0.75;
 
 Effort=U./Turf.q; %Translate F in to effort;
 
@@ -39,13 +41,18 @@ PopMatrix=NaN(System.NumPatches,Time);
 
 t=1   ;
 
-
 PopMatrix(:,1)=StartPop;
 
 TimeTurfProfits=NaN(Turf.NumTurfs,Time);
 
-TimeTurfMarginalProfits=NaN(Turf.NumTurfs,Time);
+catches=NaN(Turf.NumTurfs,Time);
 
+revenues=NaN(Turf.NumTurfs,Time);
+
+costs=NaN(Turf.NumTurfs,Time);
+
+
+TimeTurfMarginalProfits=NaN(Turf.NumTurfs,Time);
 
 StoreEffort=NaN(Turf.NumTurfs,Time);
 
@@ -69,21 +76,31 @@ while t<(Time+1)
             warning('Attempting to trade with different internal ITQs')
         end
         
-        RealizedEffort=TradeQuota(U,IsITQ,MovePopulation);
+        RealizedEffort=TradeQuota(U,IsITQ,MovePopulation, cr_ratio);
         
-%         RealizedEffort=RealizedEffort./Turf.q;
+
+        %         RealizedEffort=RealizedEffort./Turf.q;
+    elseif IsTrading == 2
+        
+        quota_pool = U .* sum(MovePopulation);
+        
+        RealizedEffort = ([theta, 1 - theta] .* quota_pool) ./ (Turf.q .* MovePopulation);
+        
     else
+        
         RealizedEffort=Effort;
     end
     
     StoreEffort(:,t)=RealizedEffort.*Turf.q; %Transform effort from E to U
     
-   RealEffort(:,t)=RealizedEffort; %Store real effort
-
+    RealEffort(:,t)=RealizedEffort; %Store real effort
+    
     
     Quota= RealizedEffort.*Turf.q.*MovePopulation; %Determine the quota for each level of effort
     
     Quota=max(0,min(Quota,MovePopulation)); %Make sure quota isn't higher than population, less than 0
+    
+    catches(:,t) = Quota;
     
     for tt=1:Turf.NumTurfs %Calculate TURF profits
         
@@ -95,14 +112,18 @@ while t<(Time+1)
             
         end
         
-        [temp_profits, temp_marginal_profits] = TurfProfits(Quota,RealizedEffort,MovePopulation,tt,itq_temp,'Simple');
+        [temp_profits, temp_marginal_profits, temp_revenues, temp_costs] = TurfProfits(Quota,RealizedEffort,MovePopulation,tt,itq_temp,'Simple', cr_ratio);
         
         TimeTurfProfits(tt,t)= temp_profits ; %Calculate profits in each TURF
         
         TimeTurfMarginalProfits(tt,t)= temp_marginal_profits;%Calculate profits in each TURF
         
+        revenues(tt,t) = temp_revenues;
+        
+        costs(tt,t) = temp_costs;
+        
     end
-    
+     %
     
     Grow= max(0,MovePopulation+(MovePopulation.*Fish.r).*(1-MovePopulation./(Fish.K .* System.HabQuality))-Quota); %Grow the population
     
@@ -113,9 +134,8 @@ while t<(Time+1)
     
     PopChange=abs(sum(PopMatrix(:,t+1)-PopMatrix(:,t))); %Check to see if the population is changing
     
-    t=t+1;
     
-    if strcmp(TimeMode,'EQ') && PopChange<= System.PopTolerance && EQCount<2 %Stop population growth once it hits EQ +1 year
+    if strcmp(TimeMode,'EQ') && PopChange<= System.PopTolerance && EQCount<2 || t > 500 %Stop population growth once it hits EQ +1 year
         
         StopTime=t; %Number of years to EQ
         
@@ -123,6 +143,8 @@ while t<(Time+1)
         
     end
     
+    t=t+1;
+
     if EQCount==2
         t=Time+1;
     end
@@ -131,16 +153,22 @@ while t<(Time+1)
 end %Close population loop
 
 
-%Clean up data
-IsEmpty=StopTime<= 1:size(PopMatrix,2);
 
-TimeTurfProfits(:,IsEmpty)=[];
+TimeTurfProfits = TimeTurfProfits(:, 1:StopTime);
 
-TimeTurfMarginalProfits(:,IsEmpty)=[];
+TimeTurfMarginalProfits = TimeTurfMarginalProfits(:, 1:StopTime);
 
-PopMatrix(:,IsEmpty)=[];
+PopMatrix = PopMatrix(:, 1:StopTime); 
 
-StoreEffort(:,IsEmpty)=[];
+StoreEffort = StoreEffort(:,1:StopTime); 
+
+revenues = revenues(:,1:StopTime); 
+
+costs = costs(:,1:StopTime); 
+
+catches = catches(:,1:StopTime); 
+
+
 
 Output.Trajectory=PopMatrix; %Store time series of population by patch
 
@@ -156,42 +184,18 @@ Output.Effort=StoreEffort; %Store effort over time
 
 Output.RealEffort = RealEffort;
 
-if strcmp(MakeFigures,'Yes')
-    
-    %     figure
-    %     plot(Output.Trajectory','LineWidth',3)
-    %     ylim([0,max(Fish.K)])
-    %     xlabel('Time')
-    %     ylabel('Biomass')
-    %     print(gcf,'-depsc',[FileName 'Population Trajectory.eps'])
-    %     close
-    %
-    %     figure
-    %     bar(Output.Final')
-    %     xlabel('Patch')
-    %     ylabel('Final Biomass')
-    %     colormap summer
-    %     print(gcf,'-depsc',[FileName 'Final Population.eps'])
-    %     close
-    %
-    %     figure
-    %     plot(Output.TurfProfits','LineWidth',3)
-    %     xlabel('Time')
-    %     ylabel('Profits')
-    %     print(gcf,'-depsc',[FileName 'Profit Trajectory.eps'])
-    %     close
-    %
-    %     figure
-    %     bar(Output.FinalProfits')
-    %     xlabel('Patch')
-    %     ylabel('Final Profits')
-    %     colormap summer
-    %     print(gcf,'-depsc',[FileName 'Final Profits.eps'])
-    %     close
-    
-    
-    
-end
+Output.catches = catches;
+
+Output.revenues = revenues;
+
+Output.costs = costs;
+
+% 
+% 
+% if strcmp(MakeFigures,'Yes')
+%     
+%     
+% end
 
 
 end

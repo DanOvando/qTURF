@@ -90,40 +90,60 @@ library(dplyr)
 library(ggplot2)
 library(tidyr)
 
-pop = c(1,10,100)
+r = 0.2
 
-effort = 1:200
+k = 100
+
+pop = c(1)
+
+effort = 1:20
 
 a = 10
 
 q = 0.01
 
+msy = r*k/4
+
+e_msy = (r*k/4)/(q*k/2)
+
+cr_ratio = 0.5
+
 out = expand.grid(pop = pop,effort = effort)
 
 # out$cost_derby = (a)/(2*out$effort)
+out$eq_pop = k*( 1 - pmin(r,q*out$effort)/r)
 
-out$cost_derby = (a*q*out$pop)/(2*out$effort)
+out$cost_derby = (a*q*out$eq_pop)/(2*out$effort)
+# out$cost_itq = (a*msy*cr_ratio) / (e_msy^2)
 
-out$cost_itq = 0.77 * out$cost_derby 
+out$cost_itq = 0.77 * out$cost_derby
 
 # out$cost_itq = (a*q)/2
 
-out$catch = pmin(out$pop,out$pop*q*out$effort)
+out$catch = pmin(out$eq_pop,out$eq_pop*q*out$effort)
 
 dat <- out %>%
   as_data_frame() %>%
   gather('rights','cost',cost_derby:cost_itq) %>%
-    mutate(catch = pmin(pop,pop*q*effort), revenue = catch*a,
+    mutate(catch = pmin(eq_pop,eq_pop*q*effort), revenue = catch*a,
          costs = cost*effort^2,
          profits = revenue - costs,
-         marginal_prof = a*q*pop - 2*(cost*effort))
+         marginal_prof = a*q*eq_pop - 2*(cost*effort))
 
   dat %>%
-  ggplot(aes(effort,cost, fill = rights)) +
-  geom_point(shape = 21) +
-  facet_grid(pop ~., scales = 'free') +
+  ggplot(aes(effort,cost, shape = rights, color = eq_pop)) +
+  geom_point() +
+  # facet_grid(eq_pop ~., scales = 'free') +
     xlab('E') +
-    ylab('b')
+    ylab('C')
+  
+    dat %>%
+  ggplot(aes(eq_pop,cost, shape = rights, color = eq_pop)) +
+  geom_point() +
+  # facet_grid(eq_pop ~., scales = 'free') +
+    xlab('Pop') +
+    ylab('C')
+
 
 
 ```

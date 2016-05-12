@@ -4,17 +4,17 @@
 
 %Created by Dan Ovando and Sarah Poon
 %% Setup Workspace
-clear all
+ clear all
 close all
 pause on
 
 global Fish Turf System
-opt_tol = 0.01
+opt_tol = 0.01;
 FunctionHolder; % Load in functions
 
 fn=FunctionHolder(); %Allow functions to be called
 
-RunName='BMS Revisions 3'; %Set name of folder to store results
+RunName='Blah'; %Set name of folder to store results
 
 mkdir('Results');
 
@@ -81,13 +81,15 @@ legend('TURF 1','TURF 2')
 
 FishMovement=[0,0 ; .5,.5 ; .25, 0.1 ; 0.1,.25]; %Set vector of fish movement scales to be tested
 
-TurfDifference= [1,4]; %Set vector of TURF fishing skill hetergeneity to be tested
+TurfDifference = [1,4]; %Set vector of TURF fishing skill hetergeneity to be tested
 
 %Create result storage space
 Results.Biomass=nan(2,size(FishMovement,1)*length(TurfDifference),5);
 Results.Profits=nan(2,size(FishMovement,1)*length(TurfDifference),5);
 Results.Effort=nan(2,size(FishMovement,1)*length(TurfDifference),5);
-Results.TradeValue=nan(2,size(FishMovement,1)*length(TurfDifference));
+Results.cost=nan(2,size(FishMovement,1)*length(TurfDifference),5);
+
+%Results.TradeValue=nan(2,size(FishMovement,1)*length(TurfDifference));
 
 c=0; %counter
 BaseK=Fish.K;
@@ -95,7 +97,7 @@ BasePop=UnfishedPop;
 
 StoreK=nan(2,size(FishMovement,1).*length(TurfDifference));
 for d=1:size(FishMovement,1) %loop over movement experiment
-    
+    d
     %     Fish.Movement=FishMovement(d); %Set fish movement to selected value
     
     Fish.Dispersal=DispersalKernel('Simple',FishMovement(d,:)); %Calculate dispersal kernel
@@ -132,14 +134,46 @@ for d=1:size(FishMovement,1) %loop over movement experiment
     end
     
     
+    [umsy]=fmincon(@tune_msy,[Fish.r Fish.r] ,[],[],[],[],[.001 .001],[5*Fish.Umsy 5*Fish.Umsy]); %Find Umsy
+    
+    
+    msy_pop = GrowPopulation(Fish.K,[umsy(1) umsy(2)],'EQ',0,0,'No','blah');
+    
+    %Fish.Umsy = umsy
     
     for h=1:length(TurfDifference) %Loop over heterogeniety in TURFs
+        
+        h
         
         c=c+1; %update counter
         
         StoreK(:,c)=Fish.K';
         
         Turf.q(1)=Turf.q(2).*TurfDifference(h); %Change TURF ability
+        
+        % Tune costs
+        a = 1;
+        
+        msy_revenues = msy_pop.revenues(:,end);
+        
+        msy_catches = msy_pop.catches(:,end);
+        
+        msy_biomass = msy_pop.Trajectory(:,end);
+        
+        msy_effort = msy_catches ./ (Turf.q' .* msy_biomass);
+        
+        System.cr_ratio  = 0.75;
+        
+        Alpha2=Turf.Alpha.*(1-System.ITQCosts);
+        
+        costs = (Turf.Alpha(:,2) .*(1-System.ITQCosts) .* msy_catches .* System.cr_ratio) ./ (msy_effort.^2);
+        
+        
+        Turf.Beta(:,2) = costs;
+        
+        
+        %        (costs .* msy_effort.^2) ./ (Turf.Alpha(:,2) .* msy_catches)
+        
         
         %Calculate results without ITQ
         
@@ -156,6 +190,8 @@ for d=1:size(FishMovement,1) %loop over movement experiment
         Results.Effort(:,c,1)=GameResults.Effort;
         
         Results.MarginalProfits(:,c,1) = NonITQGameOutcome.FinalMarginalProfits;
+        
+        Results.costs(:,c,1) = NonITQGameOutcome.costs(:,end);
         
         
         %Calculate results with internal ITQ
@@ -175,37 +211,54 @@ for d=1:size(FishMovement,1) %loop over movement experiment
         
         Results.MarginalProfits(:,c,2) = ITQGameOutcome.FinalMarginalProfits;
         
+        Results.costs(:,c,2) = ITQGameOutcome.costs(:,end);
+        
+        
         %Calculate results with grand ITQ
         GrandITQFunction=@(Target)SetGrandQuota(Target,1,UnfishedPop,'EQ'); %pass additional parameters
         
         Options=optimset('MaxFunEvals',1000,'Display','notify','Algorithm','active-set'); %set optimization options
         
-        [OptimalU,Profits,exitflag,output]=fmincon(GrandITQFunction,.07*Fish.Umsy,[],[],[],[],.001,20*Fish.Umsy,[],Options); %optimize effort to maximize turf T profits
+        SetGrandQuota(0.0077, 1, UnfishedPop, 'EQ')
+        
+        [OptimalU,Profits,exitflag,output]=fmincon(GrandITQFunction,Fish.Umsy ,[],[],[],[],.001,5*Fish.Umsy ,[],Options); %optimize effort to maximize turf T profits
         
         old_profits = Profits;
         opt_diff = 100;
         while opt_diff > opt_tol
-            [OptimalU,Profits,exitflag,output]=fmincon(GrandITQFunction,lognrnd(0,.05) .* OptimalU,[],[],[],[],.001,20*Fish.Umsy,[],Options); %optimize effort to maximize turf T profits
+            'tuning, please wait'
+            [OptimalU,Profits,exitflag,output]=fmincon(GrandITQFunction,lognrnd(0,.05).*OptimalU,[],[],[],[],.001,20*Fish.Umsy,[],Options); %optimize effort to maximize turf T profits
             
-            opt_diff = abs((Profits ./ old_profits) - 1);
+            opt_diff = abs((Profits ./ old_profits) - 1)
             old_profits = Profits;
             
         end
-        %         fs = linspace(.1*Umsy,(4*Umsy),20)
-        %
-        %         for i= 1:length(fs)
-        %             i
-        %             GrandITQOutcome=GrowPopulation(UnfishedPop,fs(i),'EQ',1,1,'No',[FigureFolder 'Dispersal is' num2str(FishMovement(d)) 'Het is' num2str(TurfDifference(h))  'Grand ITQ Game Outcome  ']);
-        %             test(i) = sum(GrandITQOutcome.FinalProfits);
-        %         end
-        %
-        %         figure
-        %         plot(fs,test)
-        %         pause
         
         GameResults=TurfGame([OptimalU,OptimalU/2],1,1,UnfishedPop,'EQ',OptimalU); %Optimize effort with internal ITQ
         
         GrandITQOutcome=GrowPopulation(UnfishedPop,OptimalU,'EQ',1,1,'Yes',[FigureFolder 'Dispersal is' num2str(FishMovement(d)) 'Het is' num2str(TurfDifference(h))  'Grand ITQ Game Outcome  ']);
+        %         thetas = linspace(0,1,100);
+        %
+        %         test_theta=@(Target)check_theta(Target,UnfishedPop,'EQ'); %pass additional parameters
+        %
+        %         [opted,Profits,exitflag,output]=fmincon(test_theta,[.07*Fish.Umsy .1],[],[],[],[],[.001 0],[20*Fish.Umsy 1],[],Options); %optimize effort to maximize turf T profits
+        %
+        %
+        %         huh=GrowPopulation(UnfishedPop,opted(1),'EQ',1,2,'No',[FigureFolder 'Dispersal is' num2str(FishMovement(d)) 'Het is' num2str(TurfDifference(h))  'Grand ITQ Game Outcome  '],opted(2));
+        %
+        %         for n = 1:length(thetas)
+        %                 GrandITQOutcome=GrowPopulation(UnfishedPop,OptimalU,'EQ',1,2,'No',[FigureFolder 'Dispersal is' num2str(FishMovement(d)) 'Het is' num2str(TurfDifference(h))  'Grand ITQ Game Outcome  '],thetas(n));
+        %
+        %         test_marg(n, :) = (GrandITQOutcome.FinalProfits);
+        %
+        %          opted=GrowPopulation(UnfishedPop,OptimalU,'EQ',1,2,'No',[FigureFolder 'Dispersal is' num2str(FishMovement(d)) 'Het is' num2str(TurfDifference(h))  'Grand ITQ Game Outcome  '],0.3897);
+        %
+        %         end
+        %
+        %         test_marg2 = max(0,test_marg(2:end,:)) - max(0,test_marg(1:(end - 1),:))
+        %
+        %         figure
+        %         plot(thetas,max(0,sum(test_marg,2)))
         
         Results.Biomass(:,c,3)=GrandITQOutcome.Final;
         
@@ -215,6 +268,9 @@ for d=1:size(FishMovement,1) %loop over movement experiment
         
         Results.MarginalProfits(:,c,3) = GrandITQOutcome.FinalMarginalProfits;
         
+        Results.costs(:,c,3) = GrandITQOutcome.costs(:,end);
+        
+        
         UTraded=(GameResults.Effort'-GrandITQOutcome.Effort(:,end)); %Trade value calculated as the marginal price
         
         EffortBought=UTraded(UTraded>0)/Turf.q(UTraded>0)';
@@ -222,7 +278,7 @@ for d=1:size(FishMovement,1) %loop over movement experiment
         if isempty(EffortBought)==1
             EffortBought=0 ;
         end
-        Results.TradeValue(:,c)=EffortBought.*Turf.QuotaPrice.*sign(UTraded);
+        %        Results.TradeValue(:,c)=EffortBought.*Turf.QuotaPrice.*sign(UTraded);
         
         % Calculate results with Internal ITQ in one, derby in another
         
@@ -240,6 +296,8 @@ for d=1:size(FishMovement,1) %loop over movement experiment
         
         Results.MarginalProfits(:,c,4) = ITQ_Derby_GameOutcome.FinalMarginalProfits;
         
+        Results.costs(:,c,4) = ITQ_Derby_GameOutcome.costs(:,end);
+        
         
         %Calculate Social Planner Outcome
         
@@ -249,12 +307,13 @@ for d=1:size(FishMovement,1) %loop over movement experiment
         
         [OptimalAllocation,Profits,exitflag,output]=fmincon(OmniPlannerFunction,[Fish.Umsy,Fish.Umsy],[],[],[],[],[0,0],[10*Fish.Umsy, 10*Fish.Umsy],[],Options); %optimize effort to maximize turf T profits
         
-                    old_profits = Profits;
-
+        old_profits = Profits;
+        
         opt_diff = 100;
         opt_tol = 0.01;
         while opt_diff > opt_tol
-        [OptimalAllocation,Profits,exitflag,output]=fmincon(OmniPlannerFunction,lognrnd(0,.05).*OptimalAllocation,[],[],[],[],[0,0],[10*Fish.Umsy, 10*Fish.Umsy],[],Options); %optimize effort to maximize turf T profits
+            [OptimalAllocation,Profits,exitflag,output]=fmincon(OmniPlannerFunction,lognrnd(0,.05).*OptimalAllocation,[],[],[],[],[0,0],[10*Fish.Umsy, 10*Fish.Umsy],[],Options); %optimize effort to maximize turf T profits
+            'tuning, please wait'
             
             opt_diff = abs((Profits ./ old_profits) - 1);
             old_profits = Profits;
@@ -265,6 +324,25 @@ for d=1:size(FishMovement,1) %loop over movement experiment
         %
         %         [OptimalAllocation,Profits,exitflag,output]=fmincon(OmniPlannerFunction,[Fish.Umsy,Fish.Umsy],[],[],[],[],[0,0],[10*Fish.Umsy, 10*Fish.Umsy],[],Options); %optimize effort to maximize turf T profits
         %         end
+        
+        %         deaths = linspace(0,0.4,10);
+        %
+        %         thetas = linspace(0,1,20);
+        %
+        %         for m  = 1:length(deaths)
+        %
+        %             for o = 1:length(thetas)
+        %
+        %                         arg=GrowPopulation(UnfishedPop,[deaths(m)],'EQ',1,2,'No','blah',thetas(o))
+        % %                         arg=GrowPopulation(UnfishedPop,[thetas(m) thetas(o)],'EQ',1,0,'Yes',[FigureFolder 'Dispersal is' num2str((d)) 'Het is' num2str(TurfDifference(h))  'Omni Planner Outcome  ']);
+        %
+        %                 damnit(m,o) = max(0,sum(arg.FinalProfits))
+        %
+        %             end
+        %         end
+        %
+        %         surfc(thetas, deaths, damnit)
+        
         OmniPlannerOutcome=GrowPopulation(UnfishedPop,OptimalAllocation,'EQ',1,0,'Yes',[FigureFolder 'Dispersal is' num2str((d)) 'Het is' num2str(TurfDifference(h))  'Omni Planner Outcome  ']);
         
         Results.Biomass(:,c,5)=OmniPlannerOutcome.Final;
@@ -274,6 +352,9 @@ for d=1:size(FishMovement,1) %loop over movement experiment
         Results.Effort(:,c,5)=OmniPlannerOutcome.Effort(:,end);
         
         Results.MarginalProfits(:,c,5) = OmniPlannerOutcome.FinalMarginalProfits;
+        
+        Results.costs(:,c,5) = OmniPlannerOutcome.costs(:,end);
+        
         
     end
 end
@@ -336,8 +417,8 @@ MarginalProfits = RawResults.MarginalProfits;
 TotalEffort = RawResults.TotalEffort;
 TotalBiomass = RawResults.TotalBiomass;
 TotalProfits = RawResults.TotalProfits;
-
-save([RawFolder,'raw qTURF Results.mat'],'Biomass','Profits','Effort', 'TotalProfits','MarginalProfits')
+costs = RawResults.costs
+save([RawFolder,'raw qTURF Results.mat'],'Biomass','Profits','Effort', 'TotalProfits','MarginalProfits','costs')
 
 Biomass = Results.Biomass;
 Profits = Results.Profits;

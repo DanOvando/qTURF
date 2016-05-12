@@ -1,5 +1,4 @@
-function f=ZeroFun(Theta,Pi,Beta,Turf,quota_pool,Fish,pop, IsITQ, System)
-
+function f=ZeroFun(Theta,Turf,quota_pool,Fish,pop, IsITQ, System,cr_ratio)
 
 turf_effort = ([Theta, 1 - Theta] .* quota_pool) ./ (Turf.q .* pop);
 
@@ -11,8 +10,8 @@ if IsITQ==0 %Non-ITQ profits function, with racing
     
     %         Beta=Alpha2(WhichTurfs,Col)./(2.*Effort);%Increase costs to dissipiate marginal profits
     
-    %     Beta = (Turf.Alpha(:,Col).* Turf.q.* pop)./(2.*turf_effort);%Increase costs to dissipiate marginal profits
-    Beta=Alpha2(:,Col)./(2.*turf_effort);%Increase costs to dissipiate marginal profits
+   Beta = (Turf.Alpha(:,Col).* Turf.q.* pop)./(2.*turf_effort);%Increase costs to dissipiate marginal profits
+    %Beta=Alpha2(:,Col)./(2.*turf_effort);%Increase costs to dissipiate marginal profits
     
     Beta(isinf(Beta))=0;
 else %ITQ profit function
@@ -20,16 +19,13 @@ else %ITQ profit function
     Col=2;
     
     Alpha2=(Turf.Alpha(:,Col).*(1-System.ITQCosts))';
-    
-    %     Beta = 0.77.* (Alpha2.* Turf.q.* pop)./(2.*turf_effort);%Increase costs to dissipiate marginal profits
-    
-    Beta= (Alpha2(:,Col)'.*Turf.q)./2; %Costs scale to catcheability
+        
+     Beta = Turf.Beta(:,Col);
+          
+   % Beta= (Alpha2(:,Col)'.*Turf.q)./2; %Costs scale to catcheability
     
     Beta(isinf(Beta))=0;
-    
-    
-    %         Beta= (Alpha2(:,Col)'.*Turf.q)./2; %Costs scale to catcheability
-    
+        
 end
 
 Pi = Alpha2.*Turf.q.*pop;
@@ -45,8 +41,8 @@ Pi = Alpha2.*Turf.q.*pop;
 
 % Beta(1) = (Alpha2(WhichTurfs,Col).* Turf.q(WhichTurfs).*Biomass(WhichTurfs))./(2.*Effort);%Increase costs to dissipiate marginal profits
 
-f=(Pi(1)-(2.*Beta(1).*turf_effort(1)))-(Pi(2)-(2.*Beta(2).*turf_effort(2)));
-
+f=(Pi(1)-(2.*Beta(1).*turf_effort(1)))- (Pi(2)-(2.*Beta(2).*turf_effort(2)));
+%f2 = f.^2
 % f=(Pi(1)-(2.*Beta(1).*(Theta.*TotalEffort./Turf.q(1))))-(Pi(2)-(2.*Beta(2).*((1-Theta).*TotalEffort./Turf.q(2))));
 
 end
