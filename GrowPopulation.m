@@ -2,17 +2,6 @@ function Output=GrowPopulation(StartPop,U,Time,IsITQ,IsTrading,MakeFigures,FileN
 %% Population model
 global Fish Turf System
 
-% U is fishing mortality
-% Time is the amount of time
-
-%              StartPop=100;
-%              Time=190;
-%              U=[.09 .0818];
-%          MakeFigures='No'
-%          IsITQ=0
-%          IsTrading=0
-%          FileName='wh'
-
 cr_ratio = 0.75;
 
 Effort=U./Turf.q; %Translate F in to effort;
@@ -63,9 +52,11 @@ EQCount=0;
 
 StopTime=1e10; %Maximum time for the model to run
 
+collapsed = 0;
+
 while t<(Time+1)
     
-    MovePopulation= (PopMatrix(:,t))' * Fish.Dispersal; %Move fish population
+    MovePopulation= max(1,(PopMatrix(:,t))' * Fish.Dispersal); %Move fish population
     
     %['Time is ' num2str(t)];
     
@@ -78,13 +69,33 @@ while t<(Time+1)
         
         RealizedEffort=TradeQuota(U,IsITQ,MovePopulation, cr_ratio);
         
-
+        
         %         RealizedEffort=RealizedEffort./Turf.q;
     elseif IsTrading == 2
         
-        quota_pool = U .* sum(MovePopulation);
+        %         quota_pool = U .* sum(MovePopulation);
         
-        RealizedEffort = ([theta, 1 - theta] .* quota_pool) ./ (Turf.q .* MovePopulation);
+        u_pool = U;
+        
+        patch_u = [theta (1 - theta)] .* U;
+        
+        patch_quota = min(MovePopulation,(patch_u .* MovePopulation));
+        
+        RealizedEffort = patch_quota ./ (Turf.q .* MovePopulation);
+        
+        
+        
+        %         effort_pool = U .* 1.1.*sum(Turf.msy_effort);
+        %
+        %         RealizedEffort = [theta (1 - theta)] .* effort_pool;
+        %
+        %         patch_quota =  min(MovePopulation,(RealizedEffort .* Turf.q .* MovePopulation));
+        %
+        %         quota_pool = U .* sum(Fish.K./2);
+        %
+        %         patch_quota = min(MovePopulation,([theta, 1 - theta] .* quota_pool));
+        %
+        %  RealizedEffort = (patch_quota) ./ (Turf.q .* MovePopulation);
         
     else
         
@@ -116,16 +127,18 @@ while t<(Time+1)
         
         TimeTurfProfits(tt,t)= temp_profits ; %Calculate profits in each TURF
         
-        TimeTurfMarginalProfits(tt,t)= temp_marginal_profits;%Calculate profits in each TURF
+        TimeTurfMarginalProfits(tt,t)= temp_marginal_profits; %Calculate profits in each TURF
         
         revenues(tt,t) = temp_revenues;
         
         costs(tt,t) = temp_costs;
         
     end
-     %
+    %
     
-    Grow= max(0,MovePopulation+(MovePopulation.*Fish.r).*(1-MovePopulation./(Fish.K .* System.HabQuality))-Quota); %Grow the population
+    Grow= max(1,MovePopulation+(MovePopulation.*Fish.r).*(1-MovePopulation./(Fish.K .* System.HabQuality))-Quota); %Grow the population
+    
+    %    if Grow == 0
     
     %     Grow(Grow<1)=0;
     
@@ -135,7 +148,7 @@ while t<(Time+1)
     PopChange=abs(sum(PopMatrix(:,t+1)-PopMatrix(:,t))); %Check to see if the population is changing
     
     
-    if strcmp(TimeMode,'EQ') && PopChange<= System.PopTolerance && EQCount<2 || t > 500 %Stop population growth once it hits EQ +1 year
+    if strcmp(TimeMode,'EQ') && PopChange<= System.PopTolerance && EQCount<2 && t > 20 || t > 300 %Stop population growth once it hits EQ +1 year
         
         StopTime=t; %Number of years to EQ
         
@@ -144,7 +157,7 @@ while t<(Time+1)
     end
     
     t=t+1;
-
+    
     if EQCount==2
         t=Time+1;
     end
@@ -153,24 +166,37 @@ while t<(Time+1)
 end %Close population loop
 
 
+% if StopTime > 300
+%
+%     TimeTurfProfits = TimeTurfProfits./StopTime;
+%
+% end
 
 TimeTurfProfits = TimeTurfProfits(:, 1:StopTime);
 
 TimeTurfMarginalProfits = TimeTurfMarginalProfits(:, 1:StopTime);
 
-PopMatrix = PopMatrix(:, 1:StopTime); 
+PopMatrix = PopMatrix(:, 1:StopTime);
 
-StoreEffort = StoreEffort(:,1:StopTime); 
+StoreEffort = StoreEffort(:,1:StopTime);
 
-revenues = revenues(:,1:StopTime); 
+revenues = revenues(:,1:StopTime);
 
-costs = costs(:,1:StopTime); 
+costs = costs(:,1:StopTime);
 
-catches = catches(:,1:StopTime); 
-
+catches = catches(:,1:StopTime);
 
 
 Output.Trajectory=PopMatrix; %Store time series of population by patch
+
+if any(PopMatrix(:,end)' < (0.1 .* Fish.K))
+    
+    collapsed = 1;
+    
+    %     TimeTurfProfits = TimeTurfProfits' .* (PopMatrix(:,end) ./ Fish.K);
+end
+
+Output.collapsed = collapsed;
 
 Output.Final=PopMatrix(:,end); %Store final population
 
@@ -190,11 +216,11 @@ Output.revenues = revenues;
 
 Output.costs = costs;
 
-% 
-% 
+%
+%
 % if strcmp(MakeFigures,'Yes')
-%     
-%     
+%
+%
 % end
 
 

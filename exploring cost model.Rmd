@@ -106,7 +106,7 @@ msy = r*k/4
 
 e_msy = (r*k/4)/(q*k/2)
 
-cr_ratio = 0.5
+cr_ratio = .1
 
 out = expand.grid(pop = pop,effort = effort)
 
@@ -114,15 +114,16 @@ out = expand.grid(pop = pop,effort = effort)
 out$eq_pop = k*( 1 - pmin(r,q*out$effort)/r)
 
 out$cost_derby = (a*q*out$eq_pop)/(2*out$effort)
-# out$cost_itq = (a*msy*cr_ratio) / (e_msy^2)
+ out$cost_itq = (a*msy*cr_ratio) / (e_msy^2)
 
-out$cost_itq = 0.77 * out$cost_derby
+# out$cost_itq = 0.77 * out$cost_derby
 
-# out$cost_itq = (a*q)/2
+out$cost_itq = (a*q)/2
 
 out$catch = pmin(out$eq_pop,out$eq_pop*q*out$effort)
 
 dat <- out %>%
+  mutate(cr_ratio = (cost_itq * effort ^2)/(a*eq_pop*q*effort)) %>% 
   as_data_frame() %>%
   gather('rights','cost',cost_derby:cost_itq) %>%
     mutate(catch = pmin(eq_pop,eq_pop*q*effort), revenue = catch*a,
@@ -138,11 +139,11 @@ dat <- out %>%
     ylab('C')
   
     dat %>%
-  ggplot(aes(eq_pop,cost, shape = rights, color = eq_pop)) +
+  ggplot(aes(eq_pop,cr_ratio, shape = rights, color = eq_pop)) +
   geom_point() +
   # facet_grid(eq_pop ~., scales = 'free') +
     xlab('Pop') +
-    ylab('C')
+    ylab('CtoR')
 
 
 

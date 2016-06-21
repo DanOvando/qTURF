@@ -2,10 +2,9 @@ function [Profits, MarginalProfits,revenue, costs]=TurfProfits(Quota,Effort,Pop,
 %% Calculate profits in the selected TURF(s)
 global Fish Turf System
 
-% Quota: The quota caught
+% Quota: The quota caught vbbv
 % Effort: the effort exerted
-% WhichTurfs: TURFs you are calculating profits for
-% IsITQ: 1 or 0 whether the TURFs have internal ITQs
+% WhichTurfs: TURFs you are calculating profits forb bnm
 % Method: Marks how profits are distributed, simple is the only option so far
 
 Biomass=Pop;
@@ -17,7 +16,8 @@ if strcmp(Method,'Simple')
         Alpha2=Turf.Alpha;
         
                 % Beta=Alpha2(WhichTurfs,Col)./(2.*Effort);%Increase costs to dissipiate marginal profits
-        
+       %    Beta = Turf.Beta(:,Col);
+
        Beta = (Alpha2(WhichTurfs,Col).* Turf.q(WhichTurfs).*Biomass(WhichTurfs))./(2.*Effort);%Increase costs to dissipiate marginal profits
         
         Beta(isinf(Beta))=0;
@@ -29,7 +29,7 @@ if strcmp(Method,'Simple')
         
         Beta = Turf.Beta(:,2);
         
-%        Beta= (Alpha2(:,Col)'.*Turf.q)./2; %Costs scale to catcheability
+       %Beta= (Alpha2(:,Col)'.*Turf.q)./2; %Costs scale to catcheability
         
     end
     
