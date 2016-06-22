@@ -5,9 +5,9 @@
 # transturfs --------------------------------------------------------------
 # A wrapper for dealing with a better version of TURF itqs
 
-run_name = 'version 2.0'
+run_name = 'version 2.0 test'
 
-run_model = F
+run_model = T
 
 run_dir = paste('qTURF Results/', run_name, '/', sep = '')
 
