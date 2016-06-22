@@ -1,3 +1,15 @@
+#' run_scene runs a given scenario through its various policy options
+#'
+#' @param run_name the run being run
+#' @param runs the matrix of possible runs
+#' @param time number of years to run the model for
+#' @param no_coop_cost the cost augmentation of not cooperating
+#' @param patches data frame of patch specific factors
+#' @param kmode whether carrying capacity is patch specific or global
+#'
+#' @return out a dataframe of results
+#' @export
+#'
 run_scene = function(run_name,
                      runs,
                      time = 50,

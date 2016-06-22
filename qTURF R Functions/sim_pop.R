@@ -1,3 +1,14 @@
+#' Simulate a surplus production model
+#'
+#' @param scene
+#' @param patches
+#' @param time
+#' @param start_pop
+#' @param effort
+#' @param kmode
+#'
+#' @return projected fishery
+#' @export
 sim_pop = function(scene,
                      patches,
                      time = 50,
@@ -21,9 +32,9 @@ sim_pop = function(scene,
   out$effort = as.data.frame(matrix(rep(effort,time), nrow = time, ncol = 2, byrow = T))
 
   colnames(out$effort) = c('a','b')
-  # out$catch[1,] =  scene$q * out$effort[1, ] *  out$biomass[1, ]
 
-   out$catch[1,] = pmin(out$biomass[1, ], scene$q * out$effort[1, ] *  out$biomass[1, ])
+  out$catch[1,] =  scene$q * out$effort[1, ] *  out$biomass[1, ]
+   # out$catch[1,] = pmin(out$biomass[1, ], scene$q * out$effort[1, ] *  out$biomass[1, ])
 
   if (kmode == 'patch') {
     k = patches$k
@@ -57,7 +68,11 @@ sim_pop = function(scene,
 
   } #close pop loop
 
+
   vars = names(out)
+
+# Flatten things ----------------------------------------------------------
+
 
   flat_fun = function(var, out) {
     out[[var]] %>%
@@ -71,8 +86,6 @@ sim_pop = function(scene,
     bind_rows() %>%
     ungroup() %>%
     spread(metric, value)
-  # ggplot(a, aes(year, biomass, color = turf)) +
-  #   geom_line(size = 2)
-  #
+
   return(out)
 }

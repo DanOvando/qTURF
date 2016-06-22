@@ -1,3 +1,14 @@
+#' run_game runs a game through fixed point iteration
+#'
+#' @param scene scenario being run
+#' @param patches
+#' @param time
+#' @param eq_pop
+#' @param game_tol
+#' @param kmode
+#'
+#' @return nash equilibrium outcome of effort
+#' @export
 run_game = function(scene,
                     patches,
                     time = 25,
@@ -19,7 +30,7 @@ run_game = function(scene,
     cc = cc + 1
     new_effort = old_effort
     for (i in seq_along(turfs)) {
-      turn = nlminb(
+      turn = nlminb( #optimize effort given action of other TURF
         start = .2,
         play_game,
         which_turf = i,

@@ -1,3 +1,17 @@
+#' play_game
+#'
+#' @param turf_effort effort in a particular TURF
+#' @param which_turf which TURF is being modified
+#' @param scene
+#' @param patches
+#' @param time
+#' @param start_pop starting population
+#' @param effort effort vector for both TURFs
+#' @param kmode
+#'
+#' @return
+#' @export profits for the turf in question
+#'
 play_game = function(turf_effort,
                      which_turf,
                      scene,
