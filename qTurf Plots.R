@@ -8,7 +8,7 @@ library(tidyr)
 library(reshape2)
 library(scales)
 
-resultdir <- 'BMS Revisions 2'
+resultdir <- 'Source Sink New Costs hail satan'
 
 figurefolder <- paste('Results/',resultdir,'/Figures/',sep = '')
 
@@ -57,6 +57,42 @@ turf.profits <- melt(turf.profits, varnames = names(dimnames(turf.profits)),
 
 colnames(turf.profits) <- c('turf','scenario','rights','relative.profits')
 
+turf.costs <- (raw.qturf.data$costs)
+
+dimnames(turf.costs) <- list(c('TURF1','TURF2'),c('M0 - Identical TURFs','M0 - Different TURFs','M1 - Identical TURFs',
+                                                    'M1 - Different TURFs','M2 - Identical TURFs','M2 - Different TURFs',
+                                                    'M3 - Identical TURFs','M3 - Different TURFs'),c('No ITQ','Internal ITQ','Inter-TURF ITQ','ITQ v Derby','Omni'))
+
+turf.costs <- melt(turf.costs, varnames = names(dimnames(turf.costs)),
+                     na.rm = FALSE, as.is = FALSE, value.name = "value")
+
+colnames(turf.costs) <- c('turf','scenario','rights','costs')
+
+
+turf.costs %>%
+  ggplot(aes(scenario, costs, fill = turf )) +
+  geom_bar(stat = 'identity', position = 'dodge') +
+  facet_grid(rights ~.)
+
+# Process Biomass
+
+turf_biomass <- (raw.qturf.data$Biomass)
+
+dimnames(turf_biomass) <- list(c('TURF1','TURF2'),c('M0 - Identical TURFs','M0 - Different TURFs','M1 - Identical TURFs',
+                                                  'M1 - Different TURFs','M2 - Identical TURFs','M2 - Different TURFs',
+                                                  'M3 - Identical TURFs','M3 - Different TURFs'),c('No ITQ','Internal ITQ','Inter-TURF ITQ','ITQ v Derby','Omni'))
+
+turf_biomass <- melt(turf_biomass, varnames = names(dimnames(turf_biomass)),
+                   na.rm = FALSE, as.is = FALSE, value.name = "value")
+
+colnames(turf_biomass) <- c('turf','scenario','rights','biomass')
+
+head(turf_biomass)
+
+turf_biomass %>%
+  ggplot(aes(scenario, biomass, fill = turf )) +
+  geom_bar(stat = 'identity', position = 'dodge') +
+  facet_grid(rights ~.)
 
 # Raw Profits -------------------------------------------------------------
 
@@ -160,7 +196,7 @@ ggsave(file = paste(figurefolder,'figure whoknows.pdf'), plot = fig2who, height 
 
 fig2 <- (ggplot(total.profits, aes(scenario,relative.profits/100, fill = rights)) +
               geom_bar(stat = 'identity', width = 0.4, position = position_dodge(width = 0.7), color = 'black') +
-              scale_y_continuous(labels = percent, limits= c(0,1.2)) +
+              scale_y_continuous(labels = percent, limits= c(0,1.6)) +
               geom_hline(yintercept = 1, linetype = 'longdash') +
               qturf.theme + theme (legend.title = element_blank(), axis.title.x = element_blank()) +
               ylab('% of Optimal Profits') +

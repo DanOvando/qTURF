@@ -1,0 +1,183 @@
+---
+title: "Exploring cost model"
+author: "Dan Ovando"
+date: "April 11, 2016"
+output:
+  html_document: default
+  pdf_document:
+    fig_caption: yes
+---
+
+The problem: The profit model we used went like this
+
+ $$(1) \pi = aqEN - bE^{2}$$
+
+And so, of course $d\pi/dE$ is just
+
+$$ (2) d\pi/dE = aqN - 2bE$$
+
+
+This all looks good. The problem is, there's an *E* baked into that *N*. I didn't notice this before since I never really work with things at equilibrium, I just simulate them. So, under those circumstances, the *N* is a function of the effort up till that point. But, for cases like the grand ITQ, we essentially cut a corner (or made the thing more elegant if you think that way) and instead of actually running out the trading game, just said "oh, they should trade until marginal profits are zero!". That works great in theory, but now that hidden E comes back to bite us.
+
+The problem is under that trading model, there is no biological cost to effort, only a pecuniary cost. So that causes some strange business to happen, and is probably the culprit behind the strange behavior of TURFs with different skill, no movement, and an ITQ.
+
+So, if we properly account for population dynamics...
+
+Under Schaefer dynamics, we can solve for the equilibrium *N* for any given constant *E* per
+
+$$ N_{eq} = K(1 - \frac{qE}{r}) $$
+
+we can then plug this back into our profit equation to get the equilibrium profits for any level of effort
+
+$$ \pi = aqE(K(1 - \frac{qE}{r})) - bE^{2} $$
+
+After some simplification, we get to
+
+$$ \pi = (aqEK - \frac{aq^{2}KE^{2}}{r}) - bE^{2}$$
+
+and so the corrected $d\pi/dE$ is
+
+$$ d\pi/dE = aqK(1 - 2\frac{qE}{r}) - 2bE $$
+
+Now, if we consider subsetting these by TURFs, we can say for trading, find $\phi$ division of *E* such that the marginal profits in each TURF are equal at **equilibrium**,
+
+$$ d\pi_{1}/d(E\phi) - d\pi_{2}/d(E(1 -\phi)) = 0 $$
+
+Have done some quick plots of this and it seems to check out, though will double check.
+
+That should fix the ITQ trading (formerly "grand ITQ") scenario.
+
+
+Marginal profits also come in in the "non-cooperative" TURF scenario. When cooperation wasn't present, we would increase *b* such that the marginal profits for any given *E* and *N* were zero. I think this one is still OK, since we run this within the population loop, and so the the function is taking the population into account to adjust the cost parameter. So, for any given population size, the marginal profits are in fact zero. If that effort increases or decreases the population in the next year, costs will adjust accordingly.
+
+The last bit of confusion comes into the way we are modeling cooperation. We do that by adjusting cost.
+
+Under the original formulation, we say that if cooperation isn't present (*k* = 0) then *b* is
+
+$$ b = \frac{a}{2E}$$
+
+and if *k* = 1 (cooperation present) then costs as_data_frame
+
+
+$$ b = \frac{aq}{2} $$
+
+The problem is, neither Chris or I can figure out where or why this happens. For the non-cooperation scenario (k = 0), marginal profits aren't zero under this for any population size. But, it does have the property that *b* is always higher in the non-cooperative (derby) scenario, Fig.1. So, that's good at least.
+But, it seems that this needs fixing, especially since we had reviewer 1 ask where those equations came from. It seems we need to derive a new cost function. Given that this happens in the dynamic population model, I think we can use our old marginal profit model of
+
+$$ d\pi/dE = aqN - 2bE$$
+
+set this to 0 and solve for b, such that
+
+$$ b = \frac{aqN}{2E} $$
+
+So, for that N, for any effort, marginal profits will be 0. I think we can get away with not dealing with the E implicit in N since this is a dynamic, not equilibrium, solution?
+
+That leaves the question though of what should costs be when cooperation is present?
+
+$$ b = \frac{aq}{2} $$
+
+ Doesn't work using the above cost model, sometimes costs are lower in the derby in this case. Is there a way to "solve" for this? Or should it just be as simple as something like
+
+ $$b_{cooperative} =  0.75b_{derby}$$
+
+
+Sigh. 
+
+
+```{r, echo = F, fig.cap = 'Cost (b) as a function of effort (E) for derby and ITQ scenarios under our original method', message=F, warning=F}
+
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+
+r = 0.2
+
+k = 100
+
+pop = c(1)
+
+effort = 1:20
+
+a = 10
+
+q = 0.01
+
+msy = r*k/4
+
+e_msy = (r*k/4)/(q*k/2)
+
+cr_ratio = .1
+
+out = expand.grid(pop = pop,effort = effort)
+
+# out$cost_derby = (a)/(2*out$effort)
+out$eq_pop = k*( 1 - pmin(r,q*out$effort)/r)
+
+out$cost_derby = (a*q*out$eq_pop)/(2*out$effort)
+ out$cost_itq = (a*msy*cr_ratio) / (e_msy^2)
+
+# out$cost_itq = 0.77 * out$cost_derby
+
+out$cost_itq = (a*q)/2
+
+out$catch = pmin(out$eq_pop,out$eq_pop*q*out$effort)
+
+dat <- out %>%
+  mutate(cr_ratio = (cost_itq * effort ^2)/(a*eq_pop*q*effort)) %>% 
+  as_data_frame() %>%
+  gather('rights','cost',cost_derby:cost_itq) %>%
+    mutate(catch = pmin(eq_pop,eq_pop*q*effort), revenue = catch*a,
+         costs = cost*effort^2,
+         profits = revenue - costs,
+         marginal_prof = a*q*eq_pop - 2*(cost*effort))
+
+  dat %>%
+  ggplot(aes(effort,cost, shape = rights, color = eq_pop)) +
+  geom_point() +
+  # facet_grid(eq_pop ~., scales = 'free') +
+    xlab('E') +
+    ylab('C')
+  
+    dat %>%
+  ggplot(aes(eq_pop,cr_ratio, shape = rights, color = eq_pop)) +
+  geom_point() +
+  # facet_grid(eq_pop ~., scales = 'free') +
+    xlab('Pop') +
+    ylab('CtoR')
+
+
+
+```
+
+
+```{r, eval=F}
+r <- .1
+
+k <- 100
+
+q = 0.01
+
+time = 2000
+
+pop = data_frame(time = 1:time, pop = NA)
+
+effort = .1
+
+pop$pop[1] = 1
+
+for (i in 1:(time - 1)){
+
+  pop$pop[i + 1] = pop$pop[i] + pop$pop[i]*r*(1-pop$pop[i]/k) - q*effort*pop$pop[i]
+
+}
+
+last(pop$pop)
+
+k*(1-q*effort/r)
+
+
+pop %>%
+ggplot(aes(time,pop)) +
+  geom_point()
+
+```
