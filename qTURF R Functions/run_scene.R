@@ -19,7 +19,6 @@ run_scene = function(run_name,
 
   # run_name = scenes[1]
 
-  show(run_name)
   scene = filter(runs, run == run_name)
 
   scene$price = 1
@@ -63,7 +62,7 @@ run_scene = function(run_name,
     kmode = kmode
   ) %>%
     filter(year == max(year)) %>%
-    mutate(policy = 'non coop game')
+    mutate(policy = 'Non-Cooperative Competition')
 
 
   # ggplot(non_coop_game_result, aes(year,profits, color = turf)) +
@@ -95,13 +94,37 @@ run_scene = function(run_name,
     kmode = kmode
   ) %>%
     filter(year == max(year)) %>%
-    mutate(policy = 'coop game')
+    mutate(policy = 'Cooperative Competition')
 
+  # ITQ v Derby -------------------------------------------------------------
 
+  coop_derby_game_scene = scene
 
+  coop_derby_game_scene$coop = c(1, 0)
+
+  coop_derby_game_scene = coop_derby_game_scene %>%
+    mutate(cost = base_cost * (1 + (as.numeric(coop == 0) * no_coop_cost)))
+
+  coop_derby_game = run_game(
+    scene = coop_derby_game_scene,
+    patches = patches,
+    eq_pop = eq_pop,
+    kmode = kmode,
+    time = time
+  )
+
+  coop_derby_game_result = sim_pop(
+    scene = coop_derby_game_scene,
+    patches = patches,
+    start_pop = eq_pop,
+    effort = coop_derby_game,
+    time = time,
+    kmode = kmode
+  ) %>%
+    filter(year == max(year)) %>%
+    mutate(policy = 'Cooperative Derby Competition')
 
   # cooperative trading -----------------------------------------------------------------
-
 
   coop_trade = nlminb(
     c(0.2, 0.2),
@@ -114,8 +137,6 @@ run_scene = function(run_name,
     lower = c(0, 0),
     upper = c(10, 10)
   )
-
-
   coop_trading_result = sim_pop(
     scene = coop_game_scene,
     patches = patches,
@@ -125,7 +146,7 @@ run_scene = function(run_name,
     kmode = kmode
   ) %>%
     filter(year == max(year)) %>%
-    mutate(policy = 'coop trading')
+    mutate(policy = 'Cooperative ITQ')
 
   # noncooperative trading --------------------------------------------------
 
@@ -150,12 +171,13 @@ run_scene = function(run_name,
     kmode = kmode
   ) %>%
     filter(year == max(year)) %>%
-    mutate(policy = 'non coop trade')
+    mutate(policy = 'Non-Cooperative ITQ')
 
   out = non_coop_game_result %>%
     bind_rows(coop_game_result) %>%
-    bind_rows(coop_trading_result) %>%
     bind_rows(non_coop_trading_result) %>%
+    bind_rows(coop_trading_result) %>%
+    bind_rows(coop_derby_game_result) %>%
     mutate(run = run_name) %>%
     left_join(select(scene, -cost,-price), by = c('run', 'turf'))
 
