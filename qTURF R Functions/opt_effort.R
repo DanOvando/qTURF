@@ -15,14 +15,17 @@ opt_effort = function(effort,
                      patches,
                      time,
                      start_pop,
-                     kmode = 'global') {
+                     kmode = 'global',
+                     stock_effect) {
 
   game_result = sim_pop(
     scene = scene,
     patches = patches,
     start_pop = start_pop,
     effort = effort,
-    time = time
+    time = time,
+    stock_effect = stock_effect,
+    kmode = kmode
   ) %>%
     filter(year == max(year)) %>%
     select(profits)

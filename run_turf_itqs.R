@@ -1,7 +1,7 @@
 # transturfs --------------------------------------------------------------
 # A wrapper for dealing with a better version of TURF itqs
-
-run_name = 'qTURF 2.1'
+rm(list = ls())
+run_name = '3.0 high cost no marg'
 
 run_model = F
 
@@ -19,6 +19,8 @@ library(tidyr)
 library(ggplot2)
 library(purrr)
 library(pbapply)
+library(scales)
+library(ggalt)
 
 sapply(list.files(
   pattern = "[.]R$",
@@ -81,6 +83,8 @@ base_price = 1
 
 base_cost = 1
 
+stock_effect = 1
+
 skill_mat = expand.grid(turf = turf, skill = skill) %>%
   mutate(q = c(base_q, base_q, q_diff * base_q, base_q))
 
@@ -97,9 +101,16 @@ runs = expand.grid(turf = turf,
 scenes = unique(runs$run)
 
 if (run_model == T) {
-  scenes = 'M2-Different TURFs'
 
-  results = pblapply(scenes,  run_scene, runs = runs, patches = patches) %>%
+  results = pblapply(
+    scenes,
+    run_scene,
+    runs = runs,
+    patches = patches,
+    stock_effect = stock_effect,
+    time = 10,
+    no_coop_cost = 1
+  ) %>%
     bind_rows()
 
   save(file = paste(run_dir, 'qTURF results.Rdata', sep = ''), results)
@@ -107,11 +118,33 @@ if (run_model == T) {
   load(file = paste(run_dir, 'qTURF results.Rdata', sep = ''))
 }
 
+if (!'Cooperative True ITQ' %in% unique(results$policy)){
+
 results$policy = results$policy %>%
-  factor(levels = c("Non-Cooperative Competition","Cooperative Competition",
-                    "Cooperative Derby Competition",
-                    "Non-Cooperative ITQ",
-                    "Cooperative ITQ"))
+  factor(
+    levels = c(
+      "Non-Cooperative Competition",
+      "Cooperative Competition",
+      "Cooperative Derby Competition",
+      "Non-Cooperative ITQ",
+      "Cooperative ITQ"
+    )
+  )
+} else{
+  results$policy = results$policy %>%
+    factor(
+      levels = c(
+        "Non-Cooperative Competition",
+        "Cooperative Competition",
+        "Cooperative Derby Competition",
+        "Non-Cooperative ITQ",
+        'Cooperative True ITQ',
+        "Cooperative ITQ"
+      )
+    )
+
+  }
+
 
 
 agg_results = results %>%
@@ -137,8 +170,8 @@ opt_results = rel_results %>%
 rel_results = rel_results %>%
   left_join(opt_results, by = c('turf', 'run', 'metric')) %>%
   ungroup() %>%
-  mutate(rel_value = pmin(2.5,(1e-3 + value) / (1e-3 + opt_value))) %>%
-  select(-value, -opt_value) %>%
+  mutate(rel_value = pmin(2.5, (1e-3 + value) / (1e-3 + opt_value))) %>%
+  select(-value,-opt_value) %>%
   spread(key = metric, value = rel_value)
 
 rel_agg_results = agg_results %>%
@@ -153,8 +186,8 @@ opt_agg_results = rel_agg_results %>%
 rel_agg_results = rel_agg_results %>%
   left_join(opt_agg_results, by = c('run', 'metric')) %>%
   ungroup() %>%
-  mutate(rel_value = pmin(2.5,(1e-3 + value) / (1e-3 + opt_value))) %>%
-  select(-value, -opt_value) %>%
+  mutate(rel_value = pmin(2.5, (1e-3 + value) / (1e-3 + opt_value))) %>%
+  select(-value,-opt_value) %>%
   spread(key = metric, value = rel_value) %>%
   filter(policy != opt_policy)
 
@@ -201,6 +234,19 @@ fig1 <-
       scale_fill_brewer(palette = 'Greys')
   )
 
+# fig1 <-
+#   (
+#     ggplot(agg_results,
+#            aes(run, total_profits, shape = policy)) +
+#       geom_point(position = 'dodge') +
+#       #               geom_bar(stat = 'identity', width = 0.4, position = position_dodge(width = 0.7), color = 'black', show_guide = F) +
+#       # scale_y_continuous(labels = percent, limits = c(0, 1.2)) +
+#       # geom_hline(yintercept = 1, linetype = 'longdash') +
+#       qturf.theme + theme (legend.title = element_blank()) +
+#       ylab('Profits') +
+#       scale_fill_brewer(palette = 'Greys')
+#   )
+
 ggsave(
   file = paste(run_dir, 'figure 1.pdf'),
   plot = fig1,
@@ -212,7 +258,12 @@ rel_fig1 <-
   (
     ggplot(rel_agg_results,
            aes(run, total_profits, fill = policy)) +
-      geom_bar(stat = 'identity', width = 0.4, position = position_dodge(width = 0.7), color = 'black') +
+      geom_bar(
+        stat = 'identity',
+        width = 0.4,
+        position = position_dodge(width = 0.7),
+        color = 'black'
+      ) +
       scale_y_continuous(labels = percent) +
       geom_hline(yintercept = 1, linetype = 'longdash') +
       qturf.theme + theme (legend.title = element_blank()) +
@@ -227,11 +278,95 @@ ggsave(
   width = fig_width
 )
 
+policies = unique(rel_agg_results$policy)
+
+scale.grid <- data.frame(
+  x = rep(seq_along(policies), each = 4),
+  y = rep(25, length(policies) * 4)
+)
+
+# define scale labels
+scale.labs <- data.frame(
+  x = rep(1,4),
+  y = seq(25, 100, by = 25),
+  labels = paste(seq(25, 100, by = 25),'%', sep = '')
+)
+
+
+radar_theme = theme(
+  axis.line.x = element_blank(),
+  axis.line.y = element_blank(),
+  axis.ticks.x = element_blank(),
+  axis.ticks.y = element_blank(),
+  axis.text.x = element_blank(),
+  axis.text.y = element_blank(),
+  axis.title.y = element_blank(),
+  axis.title.x = element_blank(),
+  panel.grid = element_blank(),
+  legend.text = element_text(size=12),
+  legend.title = element_blank(),
+  # plot.title = element_text(lineheight = 0.8,size = 20),
+  legend.position = "right",
+  legend.direction = "vertical",
+  strip.text.x = element_text(size = 12),
+  panel.background = element_rect(fill = 'white')
+)
+
+rel_petal_fig1 <-
+  (
+    ggplot(rel_agg_results,
+           aes(policy, 100*total_profits)) +
+      geom_bar(
+        stat = 'identity',
+        color = 'black',
+        aes(fill = policy)
+      ) +
+      facet_wrap(~run) +
+      geom_bar(
+        data = scale.grid,
+        aes(x = x, y = y),
+        width = 1 ,
+        stat = 'identity',
+        position = 'stack',
+        color = 'grey80',
+        fill = NA,
+        alpha = 0.2
+      ) +
+      geom_text(data = scale.labs,
+                aes(
+                  x = x,
+                  y = y,
+                  label = labels,
+                  fill = NULL
+                ),
+                size = 2) +
+      coord_polar() +
+      # qturf.theme +
+      radar_theme +
+      # qturf.theme + theme (legend.title = element_blank()) +
+      # ylab('Profits') +
+      scale_fill_grey(start = 1, end = 0.4)
+  )
+
+
+ggsave(
+  file = paste(run_dir, 'relative petal figure 1.pdf'),
+  plot = rel_petal_fig1,
+  height = 6,
+  width = 8
+)
+
+
 rel_bio_fig1 <-
   (
     ggplot(rel_agg_results,
            aes(run, total_biomass, fill = policy)) +
-      geom_bar(stat = 'identity', width = 0.4, position = position_dodge(width = 0.7), color = 'black') +
+      geom_bar(
+        stat = 'identity',
+        width = 0.4,
+        position = position_dodge(width = 0.7),
+        color = 'black'
+      ) +
       scale_y_continuous(labels = percent) +
       geom_hline(yintercept = 1, linetype = 'longdash') +
       qturf.theme + theme (legend.title = element_blank()) +
@@ -275,10 +410,10 @@ ggsave(
 fig4 <-
   (
     results %>%
-      select(turf,policy,run,profits) %>%
-      left_join(filter(opt_results, metric == 'profits'), by = c('turf','run')) %>%
+      select(turf, policy, run, profits) %>%
+      left_join(filter(opt_results, metric == 'profits'), by = c('turf', 'run')) %>%
       filter(policy != opt_policy) %>%
-    ggplot(aes(run, profits, fill = turf)) +
+      ggplot(aes(run, profits, fill = turf)) +
       geom_bar(
         stat = 'identity',
         width = 0.6,

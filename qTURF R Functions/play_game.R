@@ -19,7 +19,8 @@ play_game = function(turf_effort,
                      time,
                      start_pop,
                      effort,
-                     kmode = 'global') {
+                     kmode = 'global',
+                     stock_effect) {
 
   effort[which_turf] = turf_effort
 
@@ -29,7 +30,8 @@ play_game = function(turf_effort,
     start_pop = start_pop,
     effort = effort,
     time = time,
-    kmode = kmode
+    kmode = kmode,
+    stock_effect
   ) %>%
     filter(year == max(year)  & turf == letters[which_turf]) %>%
     select(profits)

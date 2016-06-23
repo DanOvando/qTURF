@@ -12,9 +12,10 @@
 run_game = function(scene,
                     patches,
                     time = 25,
-                    eq_pop,
+                    start_pop,
                     game_tol = 1e-3,
-                    kmode) {
+                    kmode,
+                    stock_effect) {
 
   turfs = unique(scene$turf)
 
@@ -34,12 +35,13 @@ run_game = function(scene,
         start = .2,
         play_game,
         which_turf = i,
-        start_pop = eq_pop,
+        start_pop = start_pop,
         scene = scene,
         patches = patches,
         time = time,
         effort = new_effort,
         kmode = kmode,
+        stock_effect = stock_effect,
         lower = 0,
         upper = 100
       )
