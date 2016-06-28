@@ -5,3 +5,5 @@
 **/*.tiff
 **/*.eps
 **/*.mat
+*.DS_Store
+.DS_Store
