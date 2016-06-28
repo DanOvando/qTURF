@@ -18,8 +18,8 @@ run_scene = function(run_name,
                      kmode = 'global',
                      stock_effect = 1) {
 
-  # run_name = scenes[1]
-
+  # run_name = scenes[3]
+print(kmode)
   scene = filter(runs, run == run_name)
 
   scene$price = 1
@@ -37,6 +37,19 @@ run_scene = function(run_name,
     filter(year == max(year)) %>%
     select(turf, biomass) %>%
     spread(turf, biomass)
+#
+#   eq_patch_k  = sim_pop(
+#     scene = scene,
+#     patches = patches,
+#     start_pop = patches$k,
+#     kmode = 'patch',
+#     time = time,
+#     stock_effect = stock_effect
+#   ) %>%
+#     filter(year == max(year)) %>%
+#     select(turf, biomass) %>%
+#     spread(turf, biomass)
+
 
   # non cooperative game ----------------------------------------------------
 

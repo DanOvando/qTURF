@@ -1,9 +1,23 @@
 # transturfs --------------------------------------------------------------
 # A wrapper for dealing with a better version of TURF itqs
 rm(list = ls())
-run_name = '3.0 high cost no marg'
+run_name = '3.1 high cost stock effect patch K'
 
-run_model = F
+run_model = T
+
+base_q = 0.1
+
+q_diff = 1.5
+
+base_price = 1
+
+base_cost = 1
+
+no_coop_cost = 1
+
+stock_effect = 2
+
+kmode = 'patch'
 
 opt_policy = 'Cooperative ITQ'
 
@@ -75,15 +89,7 @@ move_mat = expand.grid(turf = turf, movement = movement) %>%
 
 skill = c('Identical TURFs', 'Different TURFs')
 
-base_q = 0.1
 
-q_diff = 1.5
-
-base_price = 1
-
-base_cost = 1
-
-stock_effect = 1
 
 skill_mat = expand.grid(turf = turf, skill = skill) %>%
   mutate(q = c(base_q, base_q, q_diff * base_q, base_q))
@@ -109,7 +115,8 @@ if (run_model == T) {
     patches = patches,
     stock_effect = stock_effect,
     time = 10,
-    no_coop_cost = 1
+    no_coop_cost = no_coop_cost,
+    kmode = kmode
   ) %>%
     bind_rows()
 

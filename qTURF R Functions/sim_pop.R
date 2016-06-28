@@ -49,7 +49,7 @@ sim_pop = function(scene,
 
     movement =  rev(last_b * scene$move_rate) - (last_b * scene$move_rate)
 
-    out$biomass[i, ] = last_b +  patches$r * last_b * (1 - last_b / patches$k) - out$catch[i - 1,] + movement
+    out$biomass[i, ] = last_b +  patches$r * last_b * (1 - last_b /  k) - out$catch[i - 1,] + movement
 
     out$catch[i,] = (scene$q * out$effort[i, ] *  out$biomass[i, ])
 
