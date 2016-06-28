@@ -1,7 +1,7 @@
 # transturfs --------------------------------------------------------------
 # A wrapper for dealing with a better version of TURF itqs
 rm(list = ls())
-run_name = '3.1 high cost stock effect patch K'
+run_name = '4.0 no stock effect'
 
 run_model = T
 
@@ -13,9 +13,11 @@ base_price = 1
 
 base_cost = 1
 
-no_coop_cost = 1
+no_coop_cost = 1 / .77 - 1 #based off of Costello et al. 2016 Cost parameter (c) decreases from current value by 23%
 
-stock_effect = 2
+no_coop_price = 1 / 1.31 - 1 # reduction in price for non-cooperation Ex-vessel price (p) increases from current value by 31%
+
+stock_effect = 1
 
 kmode = 'patch'
 
@@ -85,7 +87,8 @@ patches = data.frame(turf = turf,
 movement = c('M0', 'M1', 'M2', 'M3')
 
 move_mat = expand.grid(turf = turf, movement = movement) %>%
-  mutate(move_rate = c(0, 0, 0.5, 0.5, 0.2, 0.05, 0.05, 0.2))
+  mutate(move_rate = c(0, 0, 0.5, 0.5, 0.4, 0.05, 0.05, 0.4))
+# mutate(move_rate = c(0, 0, 0.5, 0.5, 0.2, 0.05, 0.05, 0.2))
 
 skill = c('Identical TURFs', 'Different TURFs')
 
@@ -107,7 +110,6 @@ runs = expand.grid(turf = turf,
 scenes = unique(runs$run)
 
 if (run_model == T) {
-
   results = pblapply(
     scenes,
     run_scene,
@@ -116,6 +118,9 @@ if (run_model == T) {
     stock_effect = stock_effect,
     time = 10,
     no_coop_cost = no_coop_cost,
+    no_coop_price = no_coop_price,
+    base_price = base_price,
+    base_cost = base_cost,
     kmode = kmode
   ) %>%
     bind_rows()
@@ -125,18 +130,17 @@ if (run_model == T) {
   load(file = paste(run_dir, 'qTURF results.Rdata', sep = ''))
 }
 
-if (!'Cooperative True ITQ' %in% unique(results$policy)){
-
-results$policy = results$policy %>%
-  factor(
-    levels = c(
-      "Non-Cooperative Competition",
-      "Cooperative Competition",
-      "Cooperative Derby Competition",
-      "Non-Cooperative ITQ",
-      "Cooperative ITQ"
+if (!'Cooperative True ITQ' %in% unique(results$policy)) {
+  results$policy = results$policy %>%
+    factor(
+      levels = c(
+        "Non-Cooperative Competition",
+        "Cooperative Competition",
+        "Cooperative Derby Competition",
+        "Non-Cooperative ITQ",
+        "Cooperative ITQ"
+      )
     )
-  )
 } else{
   results$policy = results$policy %>%
     factor(
@@ -150,8 +154,9 @@ results$policy = results$policy %>%
       )
     )
 
-  }
+}
 
+results$abrv_policy = abbreviate(results$policy)
 
 
 agg_results = results %>%
@@ -162,9 +167,9 @@ agg_results = results %>%
     total_effort = sum(effort),
     total_profits = sum(profits),
     total_revenue = sum(revenue),
-    total_cost = sum(cost)
+    total_cost = sum(cost),
+    abrv_policy = unique(abrv_policy)
   )
-
 
 rel_results = results %>%
   gather('metric', 'value', biomass:revenue)
@@ -178,7 +183,7 @@ rel_results = rel_results %>%
   left_join(opt_results, by = c('turf', 'run', 'metric')) %>%
   ungroup() %>%
   mutate(rel_value = pmin(2.5, (1e-3 + value) / (1e-3 + opt_value))) %>%
-  select(-value,-opt_value) %>%
+  select(-value, -opt_value) %>%
   spread(key = metric, value = rel_value)
 
 rel_agg_results = agg_results %>%
@@ -194,7 +199,7 @@ rel_agg_results = rel_agg_results %>%
   left_join(opt_agg_results, by = c('run', 'metric')) %>%
   ungroup() %>%
   mutate(rel_value = pmin(2.5, (1e-3 + value) / (1e-3 + opt_value))) %>%
-  select(-value,-opt_value) %>%
+  select(-value, -opt_value) %>%
   spread(key = metric, value = rel_value) %>%
   filter(policy != opt_policy)
 
@@ -287,17 +292,34 @@ ggsave(
 
 policies = unique(rel_agg_results$policy)
 
-scale.grid <- data.frame(
-  x = rep(seq_along(policies), each = 4),
-  y = rep(25, length(policies) * 4)
-)
+scale.grid <- data.frame(x = rep(seq_along(policies), each = 4),
+                         y = rep(25, length(policies) * 4))
+
+
 
 # define scale labels
 scale.labs <- data.frame(
-  x = rep(1,4),
+  x = rep(1, 4),
   y = seq(25, 100, by = 25),
-  labels = paste(seq(25, 100, by = 25),'%', sep = '')
+  labels = paste(seq(25, 100, by = 25), '%', sep = '')
 )
+
+outer_labels = data.frame(x = 1:length(policies), y = 1.1*max(scale.labs$y), abrv_policy = unique(rel_agg_results$abrv_policy) )
+
+runs_to_use = c('M0-Identical TURFs','M2-Different TURFs')
+
+# define scale labels
+scale.labs.2 <- data.frame(
+  x = rep(1, 5),
+  y = seq(25, 125, by = 25),
+  labels = paste(seq(25, 125, by = 25), '%', sep = '')
+)
+
+scale.grid.2 <- data.frame(x = rep(seq_along(policies), each = 5),
+                         y = rep(25, length(policies) * 5))
+
+outer_labels_2 = data.frame(x = 1:length(policies), y = 1.1*max(scale.labs.2$y), abrv_policy = unique(rel_agg_results$abrv_policy) )
+
 
 
 radar_theme = theme(
@@ -310,7 +332,7 @@ radar_theme = theme(
   axis.title.y = element_blank(),
   axis.title.x = element_blank(),
   panel.grid = element_blank(),
-  legend.text = element_text(size=12),
+  legend.text = element_text(size = 12),
   legend.title = element_blank(),
   # plot.title = element_text(lineheight = 0.8,size = 20),
   legend.position = "right",
@@ -319,16 +341,15 @@ radar_theme = theme(
   panel.background = element_rect(fill = 'white')
 )
 
-rel_petal_fig1 <-
+rel_petal_profits <-
   (
-    ggplot(rel_agg_results,
-           aes(policy, 100*total_profits)) +
-      geom_bar(
-        stat = 'identity',
-        color = 'black',
-        aes(fill = policy)
-      ) +
-      facet_wrap(~run) +
+    rel_agg_results %>%
+      filter(run %in% runs_to_use) %>%
+      ggplot(aes(policy, 100 * total_profits)) +
+      geom_bar(stat = 'identity',
+               color = 'black',
+               aes(fill = policy)) +
+      facet_wrap(~ run) +
       geom_bar(
         data = scale.grid,
         aes(x = x, y = y),
@@ -339,14 +360,21 @@ rel_petal_fig1 <-
         fill = NA,
         alpha = 0.2
       ) +
-      geom_text(data = scale.labs,
-                aes(
-                  x = x,
-                  y = y,
-                  label = labels,
-                  fill = NULL
-                ),
-                size = 2) +
+      geom_text(
+        data = outer_labels,
+        aes(x = x, y = y, label = abrv_policy),
+        check_overlap = T
+      ) +
+      geom_text(
+        data = scale.labs,
+        aes(
+          x = x,
+          y = y,
+          label = labels,
+          fill = NULL
+        ),
+        size = 2
+      ) +
       coord_polar() +
       # qturf.theme +
       radar_theme +
@@ -357,8 +385,8 @@ rel_petal_fig1 <-
 
 
 ggsave(
-  file = paste(run_dir, 'relative petal figure 1.pdf'),
-  plot = rel_petal_fig1,
+  file = paste(run_dir, 'relative petal profits.pdf'),
+  plot = rel_petal_profits,
   height = 6,
   width = 8
 )
@@ -388,6 +416,104 @@ ggsave(
   width = fig_width
 )
 
+rel_petal_biomass <-
+  (
+    ggplot(rel_agg_results,
+           aes(policy, 100 * total_biomass)) +
+      geom_bar(stat = 'identity',
+               color = 'black',
+               aes(fill = policy)) +
+      facet_wrap( ~ run) +
+      geom_bar(
+        data = scale.grid.2,
+        aes(x = x, y = y),
+        width = 1 ,
+        stat = 'identity',
+        position = 'stack',
+        color = 'grey80',
+        fill = NA,
+        alpha = 0.2
+      ) +
+      geom_text(
+        data = outer_labels_2,
+        aes(x = x, y = y, label = abrv_policy),
+        check_overlap = T
+      ) +
+      geom_text(
+        data = scale.labs.2,
+        aes(
+          x = x,
+          y = y,
+          label = labels,
+          fill = NULL
+        ),
+        size = 2
+      ) +
+      coord_polar() +
+      # qturf.theme +
+      radar_theme +
+      # qturf.theme + theme (legend.title = element_blank()) +
+      # ylab('Profits') +
+      scale_fill_grey(start = 1, end = 0.4)
+  )
+
+
+
+
+ggsave(
+  file = paste(run_dir, 'relative petal biomass.pdf'),
+  plot = rel_petal_biomass,
+  height = 6,
+  width = 8
+)
+
+rel_petal_effort <-
+  (
+    ggplot(rel_agg_results,
+           aes(policy, 100 * total_effort)) +
+      geom_bar(stat = 'identity',
+               color = 'black',
+               aes(fill = policy)) +
+      facet_wrap( ~ run) +
+      geom_bar(
+        data = scale.grid.2,
+        aes(x = x, y = y),
+        width = 1 ,
+        stat = 'identity',
+        position = 'stack',
+        color = 'grey80',
+        fill = NA,
+        alpha = 0.2
+      ) +
+      geom_text(
+        data = outer_labels_2,
+        aes(x = x, y = y, label = abrv_policy),
+        check_overlap = T
+      ) +
+      geom_text(
+        data = scale.labs.2,
+        aes(
+          x = x,
+          y = y,
+          label = labels,
+          fill = NULL
+        ),
+        size = 2
+      ) +
+      coord_polar() +
+      # qturf.theme +
+      radar_theme +
+      # qturf.theme + theme (legend.title = element_blank()) +
+      # ylab('Profits') +
+      scale_fill_grey(start = 1, end = 0.4)
+  )
+
+ggsave(
+  file = paste(run_dir, 'relative petal effort.pdf'),
+  plot = rel_petal_effort,
+  height = 6,
+  width = 8
+)
 
 fig3 <-
   (

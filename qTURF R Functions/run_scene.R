@@ -13,18 +13,19 @@
 run_scene = function(run_name,
                      runs,
                      time = 50,
-                     no_coop_cost = 0.5,
+                     base_price = 1,
+                     base_cost = 1,
+                     no_coop_cost = 0.2987013,
+                     no_coop_price = -0.2366412,
                      patches,
                      kmode = 'global',
                      stock_effect = 1) {
-
   # run_name = scenes[3]
-print(kmode)
   scene = filter(runs, run == run_name)
 
-  scene$price = 1
+  scene$price = base_price
 
-  scene$cost = .1
+  scene$cost = base_cost
 
   eq_pop = sim_pop(
     scene = scene,
@@ -37,19 +38,6 @@ print(kmode)
     filter(year == max(year)) %>%
     select(turf, biomass) %>%
     spread(turf, biomass)
-#
-#   eq_patch_k  = sim_pop(
-#     scene = scene,
-#     patches = patches,
-#     start_pop = patches$k,
-#     kmode = 'patch',
-#     time = time,
-#     stock_effect = stock_effect
-#   ) %>%
-#     filter(year == max(year)) %>%
-#     select(turf, biomass) %>%
-#     spread(turf, biomass)
-
 
   # non cooperative game ----------------------------------------------------
 
@@ -58,7 +46,8 @@ print(kmode)
   non_coop_game_scene$coop = c(0, 0)
 
   non_coop_game_scene = non_coop_game_scene %>%
-    mutate(cost = base_cost * (1 + (as.numeric(coop == 0) * no_coop_cost)))
+    mutate(cost = base_cost * (1 + (as.numeric(coop == 0) * no_coop_cost)),
+           price = base_price * (1 + (as.numeric(coop == 0) * no_coop_price)))
 
   non_coop_game = run_game(
     scene = non_coop_game_scene,
@@ -66,7 +55,7 @@ print(kmode)
     start_pop = eq_pop,
     kmode = kmode,
     time = time,
-    stock_effect = stock_effect,
+    stock_effect = stock_effect
   )
 
   non_coop_game_result = sim_pop(
@@ -88,7 +77,8 @@ print(kmode)
   coop_game_scene$coop = c(1, 1)
 
   coop_game_scene = coop_game_scene %>%
-    mutate(cost = base_cost * (1 + (as.numeric(coop == 0) * no_coop_cost)))
+    mutate(cost = base_cost * (1 + (as.numeric(coop == 0) * no_coop_cost)),
+           price = base_price * (1 + (as.numeric(coop == 0) * no_coop_price)))
 
   coop_game = run_game(
     scene = coop_game_scene,
@@ -103,7 +93,7 @@ print(kmode)
     scene = coop_game_scene,
     patches = patches,
     start_pop = eq_pop,
-    effort = non_coop_game,
+    effort = coop_game,
     time = time,
     kmode = kmode,
     stock_effect = stock_effect
@@ -118,7 +108,8 @@ print(kmode)
   coop_derby_game_scene$coop = c(1, 0)
 
   coop_derby_game_scene = coop_derby_game_scene %>%
-    mutate(cost = base_cost * (1 + (as.numeric(coop == 0) * no_coop_cost)))
+    mutate(cost = base_cost * (1 + (as.numeric(coop == 0) * no_coop_cost)),
+           price = base_price * (1 + (as.numeric(coop == 0) * no_coop_price)))
 
   coop_derby_game = run_game(
     scene = coop_derby_game_scene,
