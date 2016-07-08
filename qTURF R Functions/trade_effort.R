@@ -5,20 +5,8 @@ trade_effort = function(total_effort,
                         start_pop,
                         kmode = 'global',
                         stock_effect) {
-  #  tuned_theta = uniroot(
-  #   tune_theta,
-  #   interval = c(02, 20),
-  #   total_effort = total_effort,
-  #   scene = scene,
-  #   patches = patches,
-  #   time = time,
-  #   start_pop = start_pop,
-  #   kmode = kmode,
-  #   stock_effect = stock_effect
-  # )
-
   tuned_theta = nlminb(
-    1,
+    0.5,
     tune_theta,
     lower = 0,
     upper = 2,
@@ -30,12 +18,6 @@ trade_effort = function(total_effort,
     kmode = kmode,
     stock_effect = stock_effect
   )
-
-  # if (abs(tuned_theta$f.root) > 1e-4) {
-  #   warning('theta failed to tune')
-  # }
-  #
-  # theta = min(1, tuned_theta$root)
 
   theta = min(1, tuned_theta$par)
 

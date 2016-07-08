@@ -68,7 +68,7 @@ run_scene = function(run_name,
     stock_effect = stock_effect
   ) %>%
     filter(year == max(year)) %>%
-    mutate(policy = 'Non-Cooperative Competition')
+    mutate(policy = 'Derby Game')
 
   # cooperative game --------------------------------------------------------
 
@@ -99,7 +99,7 @@ run_scene = function(run_name,
     stock_effect = stock_effect
   ) %>%
     filter(year == max(year)) %>%
-    mutate(policy = 'Cooperative Competition')
+    mutate(policy = 'Coop Game')
 
   # ITQ v Derby -------------------------------------------------------------
 
@@ -130,7 +130,7 @@ run_scene = function(run_name,
     stock_effect = stock_effect
   ) %>%
     filter(year == max(year)) %>%
-    mutate(policy = 'Cooperative Derby Competition')
+    mutate(policy = 'Coop Derby Game')
 
   # cooperative trading -----------------------------------------------------------------
 
@@ -157,7 +157,7 @@ run_scene = function(run_name,
     stock_effect = stock_effect
   ) %>%
     filter(year == max(year)) %>%
-    mutate(policy = 'Cooperative ITQ')
+    mutate(policy = 'Optimal')
 
   # noncooperative trading --------------------------------------------------
 
@@ -184,13 +184,13 @@ run_scene = function(run_name,
     stock_effect = stock_effect
   ) %>%
     filter(year == max(year)) %>%
-    mutate(policy = 'Non-Cooperative ITQ')
+    mutate(policy = 'Derby ITQ')
 
   # Marginal Profit ITQ -----------------------------------------------------
 
   if (stock_effect > 1) {
     coop_itq = nlminb(
-      2,
+      4,
       objective = trade_effort,
       scene = coop_game_scene,
       patches = patches,
@@ -202,8 +202,15 @@ run_scene = function(run_name,
       upper = c(10)
     )
 
+    # trade_effort(total_effort = sum(coop_trading_result$effort), scene = coop_game_scene,
+    #              patches = patches,
+    #              time = time,
+    #              start_pop = eq_pop,
+    #              kmode = kmode,
+    #              stock_effect = stock_effect)
+
     tuned_theta = nlminb(
-      1,
+      .5,
       tune_theta,
       lower = 0,
       upper = 2,
@@ -222,13 +229,14 @@ run_scene = function(run_name,
       scene = coop_game_scene,
       patches = patches,
       start_pop = eq_pop,
-      effort = coop_itq$par * c(theta, 1 - theta),
+      effort = sum(coop_trade$par) * c(theta, 1 - theta),
+      # effort = coop_itq$par * c(theta, 1 - theta),
       time = time,
       kmode = kmode,
       stock_effect = stock_effect
     ) %>%
       filter(year == max(year)) %>%
-      mutate(policy = 'Cooperative True ITQ')
+      mutate(policy = 'Coop ITQ')
   }
 
   out = non_coop_game_result %>%
@@ -243,7 +251,6 @@ run_scene = function(run_name,
   }
   out = out %>%
     mutate(run = run_name) %>%
-    left_join(select(scene,-cost, -price), by = c('run', 'turf'))
-
+    left_join(select(scene, -cost,-price), by = c('run', 'turf'))
   return(out)
 }
